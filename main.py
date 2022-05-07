@@ -5,6 +5,8 @@ from pytube.exceptions import VideoUnavailable, VideoPrivate
 import re
 import os
 
+CURRENT_VER = "100"
+
 PLAYLIST_URL_FORMAT = "https://youtube.com/playlist?list={id_}"
 VIDEO_URL_FORMAT = "https://www.youtube.com/watch?v={id_}"
 
@@ -121,6 +123,8 @@ def run():
         mp4["\xa9ART"] = vid.author
         mp4["desc"] = vid.description
         mp4["purl"] = vid.watch_url
+
+        mp4["fver"] = "100"
         # TODO: cover art
 
         mp4.save()
