@@ -123,6 +123,8 @@ def run():
         mp4["purl"] = vid.watch_url
         # TODO: cover art
 
+        mp4.save()
+
     playlist = Playlist(PLAYLIST_URL_FORMAT.format(id_=playlist_id))
 
 
