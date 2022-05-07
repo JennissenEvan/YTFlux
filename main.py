@@ -2,6 +2,7 @@ import sqlite3
 from mutagen.mp4 import MP4
 from pytube import YouTube, Playlist
 from pytube.exceptions import VideoUnavailable, VideoPrivate
+from pytube.helpers import safe_filename
 import re
 import os
 
@@ -9,8 +10,6 @@ CURRENT_VER = "100"
 
 PLAYLIST_URL_FORMAT = "https://youtube.com/playlist?list={id_}"
 VIDEO_URL_FORMAT = "https://www.youtube.com/watch?v={id_}"
-
-FILENAME_FORMAT = "'[' || SUBSTR('00000' || CAST({num} AS TEXT), -5, 5) || ']' || ' ' || {title} || '.mp4'"
 
 
 def is_available(vid: YouTube):
@@ -23,6 +22,9 @@ def is_available(vid: YouTube):
 
 
 def run():
+    if not os.path.isdir("music"):
+        os.mkdir("music")
+
     db = sqlite3.connect("playlist.db")
 
     def execute_query(q: str, *args):
@@ -50,17 +52,9 @@ def run():
             num INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
             vid_id CHAR(11) NOT NULL,
             title NTEXT NULL,
-            is_downloaded BOOLEAN NOT NULL DEFAULT FALSE,
-            is_available BOOLEAN NULL
+            is_available BOOLEAN NULL,
+            song_file_name NTEXT NULL
         );
-    """)
-
-    execute_query(f"""
-        CREATE VIEW IF NOT EXISTS PlaylistExpanded AS
-        SELECT
-            *, 
-            {FILENAME_FORMAT.format(num="num", title="title")} AS song_file_name 
-        FROM Playlist;
     """)
 
     playlist_id = fetch_query("""
@@ -89,6 +83,9 @@ def run():
             SELECT playlist_id FROM Env
         """)[0][0]
 
+    def label(vid: YouTube):
+        return f"{vid.title} ({vid.video_id})"
+
     def update_availability(vid: YouTube):
         availabe = is_available(vid)
 
@@ -101,18 +98,17 @@ def run():
         return availabe
 
     def download(vid_id: str):
-        if not os.path.isdir("music"):
-            os.mkdir("music")
-
         vid = YouTube(VIDEO_URL_FORMAT.format(id_=vid_id), use_oauth=True)
 
-        filename = fetch_query("""
-            SELECT song_file_name
-            FROM PlaylistExpanded
+        vid_num = fetch_query("""
+            SELECT num
+            FROM Playlist
             WHERE vid_id = ?
         """, vid_id)[0][0]
+        file_title = safe_filename(f"[{str(vid_num).rjust(5, '0')}] {vid.title}")
 
-        file_path = vid.streams.get_audio_only().download("music", filename)
+        print(f"Downloading {label(vid)}...")
+        file_path = vid.streams.get_audio_only().download("music", f"{file_title}.mp4")
 
         mp4 = MP4(file_path)
 
@@ -122,14 +118,74 @@ def run():
         mp4["\xa9nam"] = vid.title
         mp4["\xa9ART"] = vid.author
         mp4["desc"] = vid.description
-        mp4["purl"] = vid.watch_url
 
         mp4["fver"] = "100"
         # TODO: cover art
 
         mp4.save()
 
+        file_name = re.split(r"\\", file_path)[-1]
+        execute_query("""
+            UPDATE Playlist
+            SET song_file_name = ?
+            WHERE vid_id = ?
+        """, file_name, vid.video_id)
+
     playlist = Playlist(PLAYLIST_URL_FORMAT.format(id_=playlist_id))
+    videos = list(playlist.videos)
+
+    # Add new videos to database
+    print("Adding new videos...")
+    total = 0
+    for vid in videos:
+        if fetch_query("""
+            SELECT COUNT(*)
+            FROM Playlist
+            WHERE vid_id = ?
+        """, vid.video_id)[0][0] == 0:
+            execute_query("""
+                INSERT INTO Playlist (vid_id, title)
+                VALUES(?, ?)
+            """, vid.video_id, vid.title)
+            print(f"Added new video {label(vid)}")
+            total += 1
+    print(f"Added {total} new video(s) to playlist.")
+
+    # Check avalability for all videos
+    print("Checking video availability...")
+    vid_id_query = fetch_query("""
+        SELECT vid_id
+        FROM Playlist
+        WHERE is_available = TRUE OR is_available IS NULL
+    """)
+    vid_ids = tuple(qr[0] for qr in vid_id_query)
+    total = 0
+    for vid_id in vid_ids:
+        vid = YouTube(VIDEO_URL_FORMAT.format(id_=vid_id))
+        if not update_availability(vid):
+            print(f"{label(vid)} no longer available.")
+            total += 1
+    print(f"Status of {total} video(s) updated to unavailable.")
+
+    # Delete videos not in playlist
+    # TODO
+
+    # Download undownloaded videos
+    print("Downloading undownloaded videos...")
+    undownloaded_id_query = fetch_query("""
+        SELECT vid_id
+        FROM Playlist
+        WHERE song_file_name IS NULL
+    """)
+    undownloaded_ids = tuple(qr[0] for qr in undownloaded_id_query)
+    total = len(undownloaded_ids)
+    for i, vid_id in enumerate(undownloaded_ids):
+        download(vid_id)
+        print(f"Finished downloading video ({i + 1}/{total})")
+    print(f"Downloaded {total} video(s).")
+
+    # Verify integrity
+    # TODO
 
 
 if __name__ == "__main__":
