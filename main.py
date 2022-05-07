@@ -62,10 +62,11 @@ def run():
             new_id = match[3]
 
             try:
-                pytube.Playlist(PLAYLIST_URL_FORMAT.format(id_=new_id))
+                pl = pytube.Playlist(PLAYLIST_URL_FORMAT.format(id_=new_id))
+                pl.title
                 break
             except KeyError:
-                print("Could not find playlist.")
+                print("Error: Could not find the entered playlist ID/URL.")
 
         execute_query("""
             UPDATE Env SET playlist_id = ?
