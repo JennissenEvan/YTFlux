@@ -19,6 +19,7 @@ def is_available(vid: YouTube):
 
     return True
 
+
 def run():
     db = sqlite3.connect("playlist.db")
 
@@ -123,7 +124,6 @@ def run():
         # TODO: cover art
 
     playlist = Playlist(PLAYLIST_URL_FORMAT.format(id_=playlist_id))
-
 
 
 if __name__ == "__main__":
