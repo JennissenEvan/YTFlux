@@ -29,7 +29,7 @@ def run():
     """)
 
     execute_query("""
-        INSERT INTO Env(id) VALUES(0)
+        INSERT OR IGNORE INTO Env(id) VALUES(0)
     """)
 
     execute_query("""
