@@ -1,13 +1,23 @@
 import sqlite3
-import mutagen
-import pytube
+from mutagen.mp4 import MP4
 from pytube import YouTube, Playlist
+from pytube.exceptions import VideoUnavailable, VideoPrivate
 import re
+import os
 
 PLAYLIST_URL_FORMAT = "https://youtube.com/playlist?list={id_}"
+VIDEO_URL_FORMAT = "https://www.youtube.com/watch?v={id_}"
 
 FILENAME_FORMAT = "'[' || SUBSTR('00000' || CAST({num} AS TEXT), -5, 5) || ']' || ' ' || {title} || '.mp4'"
 
+
+def is_available(vid: YouTube):
+    try:
+        vid.check_availability()
+    except (VideoUnavailable, VideoPrivate) as e:
+        return False
+
+    return True
 
 def run():
     db = sqlite3.connect("playlist.db")
@@ -62,7 +72,7 @@ def run():
             new_id = match[3]
 
             try:
-                pl = pytube.Playlist(PLAYLIST_URL_FORMAT.format(id_=new_id))
+                pl = Playlist(PLAYLIST_URL_FORMAT.format(id_=new_id))
                 pl.title
                 break
             except KeyError:
@@ -76,6 +86,43 @@ def run():
             SELECT playlist_id FROM Env
         """)[0][0]
 
+    def update_availability(vid: YouTube):
+        availabe = is_available(vid)
+
+        execute_query("""
+            UPDATE Playlist
+            SET is_available = ?
+            WHERE vid_id = ?
+        """, 1 if availabe else 0, vid.video_id)
+
+        return availabe
+
+    def download(vid_id: str):
+        if not os.path.isdir("music"):
+            os.mkdir("music")
+
+        vid = YouTube(VIDEO_URL_FORMAT.format(id_=vid_id), use_oauth=True)
+
+        filename = fetch_query("""
+            SELECT song_file_name
+            FROM PlaylistExpanded
+            WHERE vid_id = ?
+        """, vid_id)[0][0]
+
+        file_path = vid.streams.get_audio_only().download("music", filename)
+
+        mp4 = MP4(file_path)
+
+        if mp4.tags is None:
+            mp4.add_tags()
+
+        mp4["\xa9nam"] = vid.title
+        mp4["\xa9ART"] = vid.author
+        mp4["desc"] = vid.description
+        mp4["purl"] = vid.watch_url
+        # TODO: cover art
+
+    playlist = Playlist(PLAYLIST_URL_FORMAT.format(id_=playlist_id))
 
 
 
