@@ -19,21 +19,32 @@ def run():
         return c.fetchall()
 
     execute_query("""
-CREATE TABLE IF NOT EXISTS Playlist (
-    num INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    vid_id CHAR(11) NOT NULL,
-    title NTEXT NULL,
-    is_downloaded BOOLEAN NOT NULL DEFAULT FALSE,
-    is_available BOOLEAN NULL
-);
+        CREATE TABLE IF NOT EXISTS env (
+            id INTEGER NOT NULL PRIMARY KEY CHECK (id = 0),
+            playlist_id TEXT NULL
+        )
+    """)
+
+    execute_query("""
+        INSERT INTO env(id) VALUES(0)
+    """)
+
+    execute_query("""
+        CREATE TABLE IF NOT EXISTS Playlist (
+            num INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            vid_id CHAR(11) NOT NULL,
+            title NTEXT NULL,
+            is_downloaded BOOLEAN NOT NULL DEFAULT FALSE,
+            is_available BOOLEAN NULL
+        );
 """)
 
     execute_query(f"""
-    CREATE VIEW IF NOT EXISTS PlaylistExpanded AS
-    SELECT
-        *, 
-        {FILENAME_FORMAT.format(num="num", title="title")} AS song_file_name 
-    FROM Playlist;
+        CREATE VIEW IF NOT EXISTS PlaylistExpanded AS
+        SELECT
+            *, 
+            {FILENAME_FORMAT.format(num="num", title="title")} AS song_file_name 
+        FROM Playlist;
     """)
 
 
