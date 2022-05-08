@@ -40,17 +40,16 @@ def run():
         c.execute(q, tuple(args))
         return c.fetchall()
 
+    # Initialize database
     execute_query("""
         CREATE TABLE IF NOT EXISTS Env (
             id INTEGER NOT NULL PRIMARY KEY CHECK (id = 0),
             playlist_id TEXT NULL
         )
     """)
-
     execute_query("""
         INSERT OR IGNORE INTO Env(id) VALUES(0)
     """)
-
     execute_query("""
         CREATE TABLE IF NOT EXISTS Playlist (
             num INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -64,6 +63,7 @@ def run():
         SELECT playlist_id FROM Env
     """)[0][0]
 
+    # Prompt user for playlist ID/URL if it is not initialized
     if playlist_id is None:
         while True:
             entry = input("Enter YouTube playlist URL: ")
@@ -89,6 +89,7 @@ def run():
     def label(vid: YouTube):
         return f"{vid.title} ({vid.video_id})"
 
+    # Check if video is available (not deleted or private, etc.) and update video's data
     def update_availability(vid: YouTube):
         availabe = is_available(vid)
 
@@ -100,6 +101,7 @@ def run():
 
         return availabe
 
+    # Download .mp4 audio file of given video ID and attach metadata, then update file name in database
     def download(vid_id: str):
         vid = YouTube(VIDEO_URL_FORMAT.format(id_=vid_id), use_oauth=True)
 
@@ -126,11 +128,13 @@ def run():
         mp4["\xa9ART"] = vid.author
         mp4["desc"] = vid.description
 
+        # Download thumbnail, convert to PNG for the sake of consistency
         thumbnail_response = requests.get(vid.thumbnail_url)
         thumbnail = Image.open(io.BytesIO(thumbnail_response.content))
         b = io.BytesIO()
         thumbnail.save(b, "PNG")
         b.seek(0)
+        # Attach thumbnail image to mp4
         mp4["covr"] = [MP4Cover(b.read(), imageformat=MP4Cover.FORMAT_PNG)]
 
         mp4["fver"] = "100"
