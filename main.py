@@ -146,7 +146,7 @@ def run():
     videos = list(playlist.videos)
 
     # Add new videos to database
-    print("Adding new videos...")
+    print("Checking for new videos...")
     total = 0
     for vid in videos:
         if fetch_query("""
