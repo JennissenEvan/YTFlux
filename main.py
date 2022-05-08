@@ -165,33 +165,15 @@ def run():
             WHERE vid_id = ?
         """, vid.video_id)[0][0] == 0:
             execute_query("""
-                INSERT INTO Playlist (vid_id)
-                VALUES(?)
+                INSERT INTO Playlist (vid_id, is_available)
+                VALUES(?, TRUE)
             """, vid.video_id)
             print(f"Added new video {label(vid)}")
             total += 1
     print(f"Added {total} new video(s) to playlist.")
 
     #
-    # Phase 2: Check avalability for all videos
-    #
-    print("Checking video availability...")
-    vid_id_query = fetch_query("""
-        SELECT vid_id
-        FROM Playlist
-        WHERE is_available = TRUE OR is_available IS NULL
-    """)
-    vid_ids = tuple(qr[0] for qr in vid_id_query)
-    total = 0
-    for vid_id in vid_ids:
-        vid = YouTube(VIDEO_URL_FORMAT.format(id_=vid_id))
-        if not update_availability(vid):
-            print(f"{label(vid)} no longer available.")
-            total += 1
-    print(f"Status of {total} video(s) updated to unavailable.")
-
-    #
-    # Phase 3: Delete videos not in playlist
+    # Phase 2: Delete videos not in playlist
     #
     print("Checking for videos removed from playlist...")
     query = """
@@ -201,30 +183,39 @@ def run():
     """
     playlist_vid_ids = set(v.video_id for v in videos)
     removed_vid_ids = tuple(r[0] for r in fetch_query(query) if r[0] not in playlist_vid_ids)
+    total = 0
+    unavailable_total = 0
     for vid_id in removed_vid_ids:
         file_name = fetch_query("""
-            SELECT song_file_name
-            FROM Playlist
-            WHERE vid_id = ?
-        """, vid_id)[0][0]
-
-        if file_name is not None:
-            file_path = f"{MUSIC_PATH}/{file_name}"
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                print(f"Deleted {file_name}")
-
-        execute_query("""
-            DELETE FROM Playlist
-            WHERE vid_id = ?
-        """, vid_id)
+                        SELECT song_file_name
+                        FROM Playlist
+                        WHERE vid_id = ?
+                    """, vid_id)[0][0]
 
         vid = YouTube(VIDEO_URL_FORMAT.format(id_=vid_id))
-        print(f"Removed {label(vid)} from playlist.")
-    print(f"Removed {len(removed_vid_ids)} video(s) from playlist.")
+        if update_availability(vid):
+            if file_name is not None:
+                file_path = f"{MUSIC_PATH}/{file_name}"
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    print(f"Deleted {file_name}.")
+
+            execute_query("""
+                DELETE FROM Playlist
+                WHERE vid_id = ?
+            """, vid_id)
+
+            total += 1
+            print(f"Removed {label(vid)} from playlist.")
+
+        else:
+            unavailable_total += 1
+            print(f"{file_name} ({vid_id}) is no longer available on YouTube.")
+
+    print(f"Removed {total} video(s) from playlist. {unavailable_total} video(s) marked unavailable.")
 
     #
-    # Phase 4: Download undownloaded videos
+    # Phase 3: Download undownloaded videos
     #
     print("Downloading undownloaded videos...")
     undownloaded_id_query = fetch_query("""
@@ -240,7 +231,7 @@ def run():
     print(f"Downloaded {total} video(s).")
 
     #
-    # Phase 5: Verify integrity
+    # Phase 4: Verify integrity
     #
     print("Verifying file integrity...")
     file_name_query = fetch_query("""
