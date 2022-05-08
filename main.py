@@ -1,5 +1,5 @@
 import sqlite3
-from mutagen.mp4 import MP4, MP4Cover
+from mutagen.mp4 import MP4, MP4Cover, MP4StreamInfoError, MP4NoTrackError
 from pytube import YouTube, Playlist
 from pytube.exceptions import VideoUnavailable, VideoPrivate
 import re
@@ -242,7 +242,38 @@ def run():
     #
     # Phase 5: Verify integrity
     #
-    # TODO
+    print("Verifying file integrity...")
+    file_name_query = fetch_query("""
+        SELECT song_file_name, vid_id
+        FROM Playlist
+        WHERE is_available = TRUE
+    """)
+    for file_name, vid_id in file_name_query:
+        file_path = f"{MUSIC_PATH}/{file_name}"
+
+        if not os.path.exists(file_path):
+            print(f"{file_name} not found. Redownloading...")
+            download(vid_id)
+            print("Video finished downloading.")
+
+        else:
+            mp4: MP4 | None = None
+            try:
+                mp4 = MP4(file_path)
+
+            except (MP4StreamInfoError, MP4NoTrackError) as _:
+                os.remove(file_path)
+                print(f"Could not verify integrity of {file_name}. Redownloading...")
+                download(vid_id)
+                print("Video finished downloading.")
+
+            if mp4 is not None:
+                if mp4.tags is None or "fver" not in mp4.tags.keys():
+                    os.remove(file_path)
+                    print(f"{file_name} has inconsistent metadata. Redownloading...")
+                    download(vid_id)
+                    print("Video finished downloading.")
+    print("Finished verifying integrity.")
 
 
 if __name__ == "__main__":
