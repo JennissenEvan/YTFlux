@@ -10,6 +10,8 @@ import io
 
 CURRENT_VER = "100"
 
+MUSIC_PATH = "music"
+
 PLAYLIST_URL_FORMAT = "https://youtube.com/playlist?list={id_}"
 VIDEO_URL_FORMAT = "https://www.youtube.com/watch?v={id_}"
 
@@ -24,8 +26,8 @@ def is_available(vid: YouTube):
 
 
 def run():
-    if not os.path.isdir("music"):
-        os.mkdir("music")
+    if not os.path.isdir(MUSIC_PATH):
+        os.mkdir(MUSIC_PATH)
 
     db = sqlite3.connect("playlist.db")
 
@@ -179,7 +181,35 @@ def run():
     print(f"Status of {total} video(s) updated to unavailable.")
 
     # Delete videos not in playlist
-    # TODO
+    print("Checking for videos removed from playlist...")
+    query = """
+        SELECT vid_id
+        FROM Playlist
+        WHERE is_available = TRUE
+    """
+    playlist_vid_ids = set(v.video_id for v in videos)
+    removed_vid_ids = tuple(r[0] for r in fetch_query(query) if r[0] not in playlist_vid_ids)
+    for vid_id in removed_vid_ids:
+        file_name = fetch_query("""
+            SELECT song_file_name
+            FROM Playlist
+            WHERE vid_id = ?
+        """, vid_id)[0][0]
+
+        if file_name is not None:
+            file_path = f"{MUSIC_PATH}/{file_name}"
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print(f"Deleted {file_name}")
+
+        execute_query("""
+            DELETE FROM Playlist
+            WHERE vid_id = ?
+        """, vid_id)
+
+        vid = YouTube(VIDEO_URL_FORMAT.format(id_=vid_id))
+        print(f"Removed {label(vid)} from playlist.")
+    print(f"Removed {len(removed_vid_ids)} video(s) from playlist.")
 
     # Download undownloaded videos
     print("Downloading undownloaded videos...")
