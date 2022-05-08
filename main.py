@@ -137,6 +137,8 @@ def run():
         # Attach thumbnail image to mp4
         mp4["covr"] = [MP4Cover(b.read(), imageformat=MP4Cover.FORMAT_PNG)]
 
+        # YTFlux version
+        # Identifies this file as downloaded by this script and gives version number for future reference
         mp4["fver"] = "100"
 
         mp4.save()
