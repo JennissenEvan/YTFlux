@@ -267,6 +267,8 @@ def run():
                     print("Video finished downloading.")
     print("Finished verifying integrity.")
 
+    input("Sync complete. Press Enter to exit.")
+
 
 if __name__ == "__main__":
     run()
