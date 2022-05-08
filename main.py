@@ -108,12 +108,11 @@ def run():
             FROM Playlist
             WHERE vid_id = ?
         """, vid_id)[0][0]
-        file_title = safe_filename(f"[{str(vid_num).rjust(5, '0')}] {vid.title}")
 
         print(f"Downloading {label(vid)}...")
         params = {
             "output_path": "music",
-            "filename": f"{file_title}.mp4"
+            "filename_prefix": f"[{str(vid_num).rjust(5, '0')}]"
         }
         file_path = vid.streams.get_audio_only().download(**params)
 
