@@ -53,7 +53,6 @@ def run():
         CREATE TABLE IF NOT EXISTS Playlist (
             num INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
             vid_id CHAR(11) NOT NULL,
-            title NTEXT NULL,
             is_available BOOLEAN NULL,
             song_file_name NTEXT NULL
         );
@@ -156,9 +155,9 @@ def run():
             WHERE vid_id = ?
         """, vid.video_id)[0][0] == 0:
             execute_query("""
-                INSERT INTO Playlist (vid_id, title)
-                VALUES(?, ?)
-            """, vid.video_id, vid.title)
+                INSERT INTO Playlist (vid_id)
+                VALUES(?)
+            """, vid.video_id)
             print(f"Added new video {label(vid)}")
             total += 1
     print(f"Added {total} new video(s) to playlist.")
