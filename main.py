@@ -147,7 +147,9 @@ def run():
     playlist = Playlist(PLAYLIST_URL_FORMAT.format(id_=playlist_id))
     videos = list(playlist.videos)
 
-    # Add new videos to database
+    #
+    # Phase 1: Add new videos to database
+    #
     print("Checking for new videos...")
     total = 0
     for vid in videos:
@@ -164,7 +166,9 @@ def run():
             total += 1
     print(f"Added {total} new video(s) to playlist.")
 
-    # Check avalability for all videos
+    #
+    # Phase 2: Check avalability for all videos
+    #
     print("Checking video availability...")
     vid_id_query = fetch_query("""
         SELECT vid_id
@@ -180,7 +184,9 @@ def run():
             total += 1
     print(f"Status of {total} video(s) updated to unavailable.")
 
-    # Delete videos not in playlist
+    #
+    # Phase 3: Delete videos not in playlist
+    #
     print("Checking for videos removed from playlist...")
     query = """
         SELECT vid_id
@@ -211,7 +217,9 @@ def run():
         print(f"Removed {label(vid)} from playlist.")
     print(f"Removed {len(removed_vid_ids)} video(s) from playlist.")
 
-    # Download undownloaded videos
+    #
+    # Phase 4: Download undownloaded videos
+    #
     print("Downloading undownloaded videos...")
     undownloaded_id_query = fetch_query("""
         SELECT vid_id
@@ -225,7 +233,9 @@ def run():
         print(f"Finished downloading video ({i + 1}/{total})")
     print(f"Downloaded {total} video(s).")
 
-    # Verify integrity
+    #
+    # Phase 5: Verify integrity
+    #
     # TODO
 
 
