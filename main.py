@@ -111,7 +111,11 @@ def run():
         file_title = safe_filename(f"[{str(vid_num).rjust(5, '0')}] {vid.title}")
 
         print(f"Downloading {label(vid)}...")
-        file_path = vid.streams.get_audio_only().download("music", f"{file_title}.mp4")
+        params = {
+            "output_path": "music",
+            "filename": f"{file_title}.mp4"
+        }
+        file_path = vid.streams.get_audio_only().download(**params)
 
         mp4 = MP4(file_path)
 
