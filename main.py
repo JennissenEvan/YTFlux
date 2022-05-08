@@ -1,10 +1,13 @@
 import sqlite3
-from mutagen.mp4 import MP4
+from mutagen.mp4 import MP4, MP4Cover
 from pytube import YouTube, Playlist
 from pytube.exceptions import VideoUnavailable, VideoPrivate
 from pytube.helpers import safe_filename
 import re
 import os
+import requests
+from PIL import Image
+import io
 
 CURRENT_VER = "100"
 
@@ -119,8 +122,14 @@ def run():
         mp4["\xa9ART"] = vid.author
         mp4["desc"] = vid.description
 
+        thumbnail_response = requests.get(vid.thumbnail_url)
+        thumbnail = Image.open(io.BytesIO(thumbnail_response.content))
+        b = io.BytesIO()
+        thumbnail.save(b, "PNG")
+        b.seek(0)
+        mp4["covr"] = [MP4Cover(b.read(), imageformat=MP4Cover.FORMAT_PNG)]
+
         mp4["fver"] = "100"
-        # TODO: cover art
 
         mp4.save()
 
