@@ -112,7 +112,8 @@ def run():
         print(f"Downloading {label(vid)}...")
         params = {
             "output_path": "music",
-            "filename_prefix": f"[{str(vid_num).rjust(5, '0')}]"
+            "filename_prefix": f"[{str(vid_num).rjust(5, '0')}]",
+            "skip_existing": False
         }
         file_path = vid.streams.get_audio_only().download(**params)
 
