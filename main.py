@@ -2,7 +2,6 @@ import sqlite3
 from mutagen.mp4 import MP4, MP4Cover
 from pytube import YouTube, Playlist
 from pytube.exceptions import VideoUnavailable, VideoPrivate
-from pytube.helpers import safe_filename
 import re
 import os
 import requests
