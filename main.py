@@ -169,7 +169,7 @@ def run():
                 INSERT INTO Playlist (vid_id, is_available)
                 VALUES(?, TRUE)
             """, vid.video_id)
-            print(f"Added new video {label(vid)}")
+            print(f"Added new video: {label(vid)}")
             total += 1
     print(f"Added {total} new video(s) to playlist.")
 
