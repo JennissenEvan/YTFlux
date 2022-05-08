@@ -152,6 +152,7 @@ def run():
 
     playlist = Playlist(PLAYLIST_URL_FORMAT.format(id_=playlist_id))
     videos = list(playlist.videos)
+    videos.reverse()  # Start from the bottom of the playlist
 
     #
     # Phase 1: Add new videos to database
