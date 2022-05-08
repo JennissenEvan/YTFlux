@@ -16,7 +16,7 @@ PLAYLIST_URL_FORMAT = "https://youtube.com/playlist?list={id_}"
 VIDEO_URL_FORMAT = "https://www.youtube.com/watch?v={id_}"
 
 
-def is_available(vid: YouTube):
+def is_available(vid: YouTube) -> bool:
     try:
         vid.check_availability()
     except (VideoUnavailable, VideoPrivate) as e:
@@ -90,7 +90,7 @@ def run():
         return f"{vid.title} ({vid.video_id})"
 
     # Check if video is available (not deleted or private, etc.) and update video's data
-    def update_availability(vid: YouTube):
+    def update_availability(vid: YouTube) -> bool:
         availabe = is_available(vid)
 
         execute_query("""
