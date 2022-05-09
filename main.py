@@ -8,6 +8,22 @@ import requests
 from PIL import Image
 import io
 
+# By default, pytube stores the token cache data in its own package directory. This is a problem for packaging the
+# script into an executable because this directory then becomes a read-only archive. It will throw an error upon
+# attempting to cache and then retrieve the oauth token. Even if it could store data there successfully, it is much
+# more desirable to instead store it in the user's OS application data folder. There is no default way of working
+# around this, so we must modify pytube.innertube directly.
+from pytube import innertube
+
+APPNAME = "YTFlux"
+
+app_path = os.path.join(os.environ["APPDATA"], APPNAME)
+if not os.path.exists(app_path):
+    os.mkdir(app_path)
+
+innertube._cache_dir = os.path.join(app_path, "cache")
+innertube._token_file = os.path.join(innertube._cache_dir, 'tokens.json')
+
 CURRENT_VER = "100"
 
 MUSIC_PATH = "music"
