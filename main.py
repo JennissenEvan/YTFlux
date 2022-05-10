@@ -159,7 +159,7 @@ def run():
 
         mp4.save()
 
-        file_name = re.split(r"\\", file_path)[-1]
+        file_name = os.path.basename(file_path)
         execute_query("""
             UPDATE Playlist
             SET song_file_name = ?
