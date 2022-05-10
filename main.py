@@ -8,8 +8,8 @@ import requests
 from PIL import Image
 import io
 
-# By default, pytube stores the token cache data in its own package directory. This is a problem for packaging the
-# script into an executable because this directory then becomes a read-only archive. It will throw an error upon
+# By default, pytube stores the token cache data in its own package directory. This is a problem for packing the
+# script into an executable because the directory then becomes a read-only archive. It will throw an error upon
 # attempting to cache and then retrieve the oauth token. Even if it could store data there successfully, it is much
 # more desirable to instead store it in the user's OS application data folder. There is no default way of working
 # around this, so we must modify pytube.innertube directly.
