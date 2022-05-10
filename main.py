@@ -106,16 +106,17 @@ def run():
         return f"{vid.title} ({vid.video_id})"
 
     # Check if video is available (not deleted or private, etc.) and update video's data
-    def update_availability(vid: YouTube) -> bool:
-        availabe = is_available(vid)
+    def update_availability(vid: YouTube, available=None) -> bool:
+        if available is None:
+            available = is_available(vid)
 
         execute_query("""
             UPDATE Playlist
             SET is_available = ?
             WHERE vid_id = ?
-        """, 1 if availabe else 0, vid.video_id)
+        """, 1 if available else 0, vid.video_id)
 
-        return availabe
+        return available
 
     # Download .mp4 audio file of given video ID and attach metadata, then update file name in database
     def download(vid_id: str):
