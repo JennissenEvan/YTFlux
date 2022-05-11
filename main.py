@@ -242,10 +242,21 @@ def run():
         WHERE song_file_name IS NULL
     """)
     undownloaded_ids = tuple(qr[0] for qr in undownloaded_id_query)
-    total = len(undownloaded_ids)
+
+    total = 0
     for i, vid_id in enumerate(undownloaded_ids):
-        download(vid_id)
-        print(f"Finished downloading video ({i + 1}/{total})")
+        try:
+            download(vid_id)
+            total += 1
+            print(f"Finished downloading video ({i + 1}/{len(undownloaded_ids)})")
+
+        except KeyError as e:
+            if str(e) != "'streamingData'":
+                raise e
+
+            update_availability(YouTube(VIDEO_URL_FORMAT.format(id_=vid_id)), False)
+            print(f"Encountered error while downloading: Video {vid_id} is unavailable.")
+
     print(f"Downloaded {total} video(s).")
 
     #
