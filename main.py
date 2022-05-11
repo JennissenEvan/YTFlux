@@ -131,7 +131,7 @@ def run():
 
         use_oauth = fetch_query("""
             SELECT use_oauth FROM Env
-        """)[0][0]
+        """)[0][0] == 1
 
     if use_oauth:
         # Prompt fetching of the OAuth token if it does not exist
