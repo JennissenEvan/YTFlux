@@ -315,7 +315,7 @@ def run():
         WHERE is_available = TRUE
     """)
     for file_name, vid_id in file_name_query:
-        file_path = f"{MUSIC_PATH}/{file_name}"
+        file_path = os.path.join(MUSIC_PATH, file_name)
 
         if not os.path.exists(file_path):
             print(f"{file_name} not found. Redownloading...")
