@@ -7,14 +7,16 @@ import os
 import requests
 from PIL import Image
 import io
+from pytube import innertube
+from urllib.error import HTTPError
+import time
+
 
 # By default, pytube stores the token cache data in its own package directory. This is a problem for packing the
 # script into an executable because the directory then becomes a read-only archive. It will throw an error upon
 # attempting to cache and then retrieve the oauth token. Even if it could store data there successfully, it is much
 # more desirable to instead store it in the user's OS application data folder. There is no default way of working
 # around this, so we must modify pytube.innertube directly.
-from pytube import innertube
-
 APPNAME = "YTFlux"
 
 app_path = os.path.join(os.environ["APPDATA"], APPNAME)
@@ -60,7 +62,8 @@ def run():
     execute_query("""
         CREATE TABLE IF NOT EXISTS Env (
             id INTEGER NOT NULL PRIMARY KEY CHECK (id = 0),
-            playlist_id TEXT NULL
+            playlist_id TEXT NULL,
+            use_oauth BOOLEAN NULL
         )
     """)
     execute_query("""
@@ -77,6 +80,10 @@ def run():
 
     playlist_id = fetch_query("""
         SELECT playlist_id FROM Env
+    """)[0][0]
+
+    use_oauth = fetch_query("""
+        SELECT use_oauth FROM Env
     """)[0][0]
 
     # Prompt user for playlist ID/URL if it is not initialized
@@ -102,6 +109,45 @@ def run():
             SELECT playlist_id FROM Env
         """)[0][0]
 
+    # Prompt and attempt to cache oauth if not configured
+    if use_oauth is None:
+        while True:
+            entry = input("Use OAuth for age resticted videos? (Y/n): ")
+
+            fl = entry[0].lower()
+            if len(entry) > 0:
+                if fl == "y":
+                    new_var = True
+                    break
+                elif fl == "n":
+                    new_var = False
+                    break
+
+            print("Error: Invalid entry. Must be Y or N.")
+
+        execute_query("""
+            UPDATE Env SET use_oauth = ?
+        """, 1 if new_var else 0)
+
+        use_oauth = fetch_query("""
+            SELECT use_oauth FROM Env
+        """)[0][0]
+
+    if use_oauth:
+        # Prompt fetching of the OAuth token if it does not exist
+        itube = innertube.InnerTube(use_oauth=True)
+        if itube.access_token is None:
+            while True:
+                try:
+                    itube.fetch_bearer_token()
+                    break
+                except HTTPError as e:
+                    if e.code != 428:
+                        raise e
+
+                    print("Authentication failed. Please try again.")
+                    time.sleep(0.5)
+
     def label(vid: YouTube):
         return f"{vid.title} ({vid.video_id})"
 
@@ -120,7 +166,7 @@ def run():
 
     # Download .mp4 audio file of given video ID and attach metadata, then update file name in database
     def download(vid_id: str):
-        vid = YouTube(VIDEO_URL_FORMAT.format(id_=vid_id), use_oauth=True)
+        vid = YouTube(VIDEO_URL_FORMAT.format(id_=vid_id), use_oauth=use_oauth)
 
         vid_num = fetch_query("""
             SELECT num
