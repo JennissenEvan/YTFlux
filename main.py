@@ -10,6 +10,7 @@ import io
 from pytube import innertube
 from urllib.error import HTTPError
 import time
+from traceback import format_exc
 
 
 # By default, pytube stores the token cache data in its own package directory. This is a problem for packing the
@@ -189,7 +190,10 @@ def run():
 
         mp4["\xa9nam"] = vid.title
         mp4["\xa9ART"] = vid.author
-        mp4["desc"] = vid.description
+        try:
+            mp4["desc"] = vid.description
+        except TypeError:
+            print("WARNING: Could not save video description.")
 
         # Download thumbnail, convert to PNG for the sake of consistency
         thumbnail_response = requests.get(vid.thumbnail_url)
@@ -345,4 +349,8 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    try:
+        run()
+    except Exception as e:
+        print(format_exc())
+        input()
